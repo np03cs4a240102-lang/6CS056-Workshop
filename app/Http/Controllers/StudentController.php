@@ -2,67 +2,63 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Controller;
+use App\Http\Requests\Student\StoreStudentRequest;
+use App\Http\Requests\Student\UpdateStudentRequest;
+use App\Http\Resources\StudentResource;
 use App\Models\Student;
-use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 class StudentController extends Controller
 {
-    public function index()
+    /**
+     * Display a listing of students.
+     */
+    public function index(): AnonymousResourceCollection
     {
-        return view('student.list', [            'students' => Student::all(),        ]);
+        $students = Student::all();
+
+        return StudentResource::collection($students);
     }
 
-    public function create()
+    /**
+     * Store a newly created student.
+     */
+    public function store(StoreStudentRequest $request): JsonResponse
     {
-        return view('student.create');
+        $student = Student::create($request->validated());
+
+        return (new StudentResource($student))
+            ->response()
+            ->setStatusCode(201);
     }
 
-    public function store(Request $request)
+    /**
+     * Display the specified student.
+     */
+    public function show(Student $student): StudentResource
     {
-        $student = Student::create($request->validate($this->rules()));
-        return redirect()
-            ->route('students.index')
-            ->with('success', "Student {$student->name} created successfully!");
+        return new StudentResource($student);
     }
 
-    public function show(Student $student)
+    /**
+     * Update the specified student.
+     */
+    public function update(UpdateStudentRequest $request, Student $student): StudentResource
     {
-        return view('student.detail', ['student' => $student]);
+        $student->update($request->validated());
+
+        return new StudentResource($student->fresh());
     }
 
-    public function edit(Student $student)
-    {
-        return view('student.edit', ['student' => $student]);
-    }
-
-    public function update(Request $request, Student $student)
-    {
-        $student->update($request->validate($this->rules($student)));
-        return redirect()
-            ->route('students.show', $student)
-            ->with('success', 'Student updated successfully!');
-    }
-
-    public function destroy(Student $student)
+    /**
+     * Remove the specified student.
+     */
+    public function destroy(Student $student): JsonResponse
     {
         $student->delete();
-        return redirect()
-            ->route('students.index')
-            ->with('success', 'Student deleted successfully!');
-    }
 
-    private function rules(?Student $student = null): array
-    {
-        return [
-            'name' => 'required|string|max:255',
-            'email' => [
-                'required', 'email', 'max:255',
-                Rule::unique('students')->ignore($student?->id),
-            ],
-            'phone' => 'required|string|max:20',
-            'address' => 'nullable|string|max:500',
-            'date_of_birth' => 'nullable|date',
-        ];
+        return response()->json(null, 204);
     }
 }
